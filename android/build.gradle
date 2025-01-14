@@ -40,6 +40,6 @@ android {
 dependencies {
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.google.truth:truth:1.0'
-    implementation 'androidx.activity:activity:1.7.2' // Replace with the latest version
+    implementation 'androidx.activity:activity:1.9.3' // For ActivityResult APIs
     implementation 'androidx.fragment:fragment:1.6.1'  // Replace with the latest version
 }
