@@ -66,16 +66,23 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
   private final ExecutorService executor =
           new ThreadPoolExecutor(0, 10, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000));
 
-  private void initDelegateWithRegister(Registrar registrar) {
-    this.delegate = new ContactServiceDelegateOld(registrar);
-  }
-
-  public static void registerWith(Registrar registrar) {
+  // private void initDelegateWithRegister(Registrar registrar) {
+  //   this.delegate = new ContactServiceDelegateOld(registrar);
+  // }
+private void initDelegateWithRegister(Registrar registrar) {
+    // Use the registrar's activity to initialize the delegate
+    this.delegate = new BaseContactsServiceDelegate(registrar.activity());
+}
+  // public static void registerWith(Registrar registrar) {
+  //   ContactsServicePlugin instance = new ContactsServicePlugin();
+  //   instance.initInstance(registrar.messenger(), registrar.context());
+  //   instance.initDelegateWithRegister(registrar);
+  // }
+public static void registerWith(Registrar registrar) {
     ContactsServicePlugin instance = new ContactsServicePlugin();
     instance.initInstance(registrar.messenger(), registrar.context());
-    instance.initDelegateWithRegister(registrar);
-  }
-
+    instance.initDelegateWithRegister(registrar); // Initialize the delegate
+}
   private void initInstance(BinaryMessenger messenger, Context context) {
     methodChannel = new MethodChannel(messenger, "github.com/clovisnicolas/flutter_contacts");
     methodChannel.setMethodCallHandler(this);
