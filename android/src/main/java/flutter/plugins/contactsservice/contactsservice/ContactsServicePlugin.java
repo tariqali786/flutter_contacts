@@ -52,6 +52,11 @@ import static android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import static android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import android.app.Activity;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import android.content.Intent;
 
 @TargetApi(Build.VERSION_CODES.ECLAIR)
 public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, ActivityAware {
