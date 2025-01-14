@@ -86,7 +86,7 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
   public void onAttachedToEngine(FlutterPluginBinding binding) {
     resources = binding.getApplicationContext().getResources();
     initInstance(binding.getBinaryMessenger(), binding.getApplicationContext());
-    this.delegate = new ContactServiceDelegate(binding.getApplicationContext());
+    // this.delegate = new ContactServiceDelegate(binding.getApplicationContext());
   }
 
   @Override
@@ -219,33 +219,58 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
     new GetContactsTask(callMethod, result, withThumbnails, photoHighResolution, orderByGivenName, localizedLabels).executeOnExecutor(executor, email, true);
   }
 
-  @Override
-  public void onAttachedToActivity(ActivityPluginBinding binding) {
-    if (delegate instanceof  ContactServiceDelegate) {
-      ((ContactServiceDelegate) delegate).bindToActivity(binding);
-    }
-  }
+  // @Override
+  // public void onAttachedToActivity(ActivityPluginBinding binding) {
+  //   if (delegate instanceof  ContactServiceDelegate) {
+  //     ((ContactServiceDelegate) delegate).bindToActivity(binding);
+  //   }
+  // }
 
-  @Override
-  public void onDetachedFromActivityForConfigChanges() {
-    if (delegate instanceof ContactServiceDelegate) {
-      ((ContactServiceDelegate) delegate).unbindActivity();
-    }
-  }
+  // @Override
+  // public void onDetachedFromActivityForConfigChanges() {
+  //   if (delegate instanceof ContactServiceDelegate) {
+  //     ((ContactServiceDelegate) delegate).unbindActivity();
+  //   }
+  // }
 
-  @Override
-  public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
-    if (delegate instanceof  ContactServiceDelegate) {
-      ((ContactServiceDelegate) delegate).bindToActivity(binding);
-    }
-  }
+  // @Override
+  // public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
+  //   if (delegate instanceof  ContactServiceDelegate) {
+  //     ((ContactServiceDelegate) delegate).bindToActivity(binding);
+  //   }
+  // }
 
-  @Override
-  public void onDetachedFromActivity() {
-    if (delegate instanceof ContactServiceDelegate) {
-      ((ContactServiceDelegate) delegate).unbindActivity();
+  // @Override
+  // public void onDetachedFromActivity() {
+  //   if (delegate instanceof ContactServiceDelegate) {
+  //     ((ContactServiceDelegate) delegate).unbindActivity();
+  //   }
+  // }
+
+    // ActivityAware methods
+    @Override
+    public void onAttachedToActivity(ActivityPluginBinding activityPluginBinding) {
+        // Initialize delegate with the current activity
+        this.delegate = new BaseContactsServiceDelegate(activityPluginBinding.getActivity());
     }
-  }
+
+    @Override
+    public void onDetachedFromActivityForConfigChanges() {
+        // Unbind delegate during configuration changes
+        this.delegate = null;
+    }
+
+    @Override
+    public void onReattachedToActivityForConfigChanges(ActivityPluginBinding activityPluginBinding) {
+        // Rebind delegate after configuration changes
+        this.delegate = new BaseContactsServiceDelegate(activityPluginBinding.getActivity());
+    }
+
+    @Override
+    public void onDetachedFromActivity() {
+        // Unbind delegate completely when the activity is detached
+        this.delegate = null;
+    }
 
 private class BaseContactsServiceDelegate {
     private static final int REQUEST_OPEN_CONTACT_FORM = 52941;
@@ -397,123 +422,123 @@ private class BaseContactsServiceDelegate {
     }
 }
   
-  private class BaseContactsServiceDelegate implements PluginRegistry.ActivityResultListener {
-    private static final int REQUEST_OPEN_CONTACT_FORM = 52941;
-    private static final int REQUEST_OPEN_EXISTING_CONTACT = 52942;
-    private static final int REQUEST_OPEN_CONTACT_PICKER = 52943;
-    private Result result;
-    private boolean localizedLabels;
+  // private class BaseContactsServiceDelegate implements PluginRegistry.ActivityResultListener {
+  //   private static final int REQUEST_OPEN_CONTACT_FORM = 52941;
+  //   private static final int REQUEST_OPEN_EXISTING_CONTACT = 52942;
+  //   private static final int REQUEST_OPEN_CONTACT_PICKER = 52943;
+  //   private Result result;
+  //   private boolean localizedLabels;
 
-    void setResult(Result result) {
-      this.result = result;
-    }
+  //   void setResult(Result result) {
+  //     this.result = result;
+  //   }
 
-    void setLocalizedLabels(boolean localizedLabels) {
-      this.localizedLabels = localizedLabels;
-    }
+  //   void setLocalizedLabels(boolean localizedLabels) {
+  //     this.localizedLabels = localizedLabels;
+  //   }
 
-    void finishWithResult(Object result) {
-      if(this.result != null) {
-        this.result.success(result);
-        this.result = null;
-      }
-    }
+  //   void finishWithResult(Object result) {
+  //     if(this.result != null) {
+  //       this.result.success(result);
+  //       this.result = null;
+  //     }
+  //   }
 
-    @Override
-    public boolean onActivityResult(int requestCode, int resultCode, Intent intent) {
-      if(requestCode == REQUEST_OPEN_EXISTING_CONTACT || requestCode == REQUEST_OPEN_CONTACT_FORM) {
-        try {
-          Uri ur = intent.getData();
-          finishWithResult(getContactByIdentifier(ur.getLastPathSegment()));
-        } catch (NullPointerException e) {
-          finishWithResult(FORM_OPERATION_CANCELED);
-        }
-        return true;
-      }
+  //   @Override
+  //   public boolean onActivityResult(int requestCode, int resultCode, Intent intent) {
+  //     if(requestCode == REQUEST_OPEN_EXISTING_CONTACT || requestCode == REQUEST_OPEN_CONTACT_FORM) {
+  //       try {
+  //         Uri ur = intent.getData();
+  //         finishWithResult(getContactByIdentifier(ur.getLastPathSegment()));
+  //       } catch (NullPointerException e) {
+  //         finishWithResult(FORM_OPERATION_CANCELED);
+  //       }
+  //       return true;
+  //     }
 
-      if (requestCode == REQUEST_OPEN_CONTACT_PICKER) {
-        if (resultCode == RESULT_CANCELED) {
-          finishWithResult(FORM_OPERATION_CANCELED);
-          return true;
-        }
-        Uri contactUri = intent.getData();
-          if (intent != null){
-        Cursor cursor = contentResolver.query(contactUri, null, null, null, null);
-        if (cursor.moveToFirst()) {
-          String id = contactUri.getLastPathSegment();
-          getContacts("openDeviceContactPicker", id, false, false, false, localizedLabels, this.result);
-        } else {
-          Log.e(LOG_TAG, "onActivityResult - cursor.moveToFirst() returns false");
-          finishWithResult(FORM_OPERATION_CANCELED);
-        }}else{return true;}
-        cursor.close();
-        return true;
-      }
+  //     if (requestCode == REQUEST_OPEN_CONTACT_PICKER) {
+  //       if (resultCode == RESULT_CANCELED) {
+  //         finishWithResult(FORM_OPERATION_CANCELED);
+  //         return true;
+  //       }
+  //       Uri contactUri = intent.getData();
+  //         if (intent != null){
+  //       Cursor cursor = contentResolver.query(contactUri, null, null, null, null);
+  //       if (cursor.moveToFirst()) {
+  //         String id = contactUri.getLastPathSegment();
+  //         getContacts("openDeviceContactPicker", id, false, false, false, localizedLabels, this.result);
+  //       } else {
+  //         Log.e(LOG_TAG, "onActivityResult - cursor.moveToFirst() returns false");
+  //         finishWithResult(FORM_OPERATION_CANCELED);
+  //       }}else{return true;}
+  //       cursor.close();
+  //       return true;
+  //     }
 
-      finishWithResult(FORM_COULD_NOT_BE_OPEN);
-      return false;
-    }
+  //     finishWithResult(FORM_COULD_NOT_BE_OPEN);
+  //     return false;
+  //   }
 
-    void openExistingContact(Contact contact) {
-      String identifier = contact.identifier;
-      try {
-        HashMap contactMapFromDevice = getContactByIdentifier(identifier);
-        // Contact existence check
-        if(contactMapFromDevice != null) {
-          Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, identifier);
-          Intent intent = new Intent(Intent.ACTION_EDIT);
-          intent.setDataAndType(uri, ContactsContract.Contacts.CONTENT_ITEM_TYPE);
-          intent.putExtra("finishActivityOnSaveCompleted", true);
-          startIntent(intent, REQUEST_OPEN_EXISTING_CONTACT);
-        } else {
-          finishWithResult(FORM_COULD_NOT_BE_OPEN);
-        }
-      } catch(Exception e) {
-        finishWithResult(FORM_COULD_NOT_BE_OPEN);
-      }
-    }
+  //   void openExistingContact(Contact contact) {
+  //     String identifier = contact.identifier;
+  //     try {
+  //       HashMap contactMapFromDevice = getContactByIdentifier(identifier);
+  //       // Contact existence check
+  //       if(contactMapFromDevice != null) {
+  //         Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, identifier);
+  //         Intent intent = new Intent(Intent.ACTION_EDIT);
+  //         intent.setDataAndType(uri, ContactsContract.Contacts.CONTENT_ITEM_TYPE);
+  //         intent.putExtra("finishActivityOnSaveCompleted", true);
+  //         startIntent(intent, REQUEST_OPEN_EXISTING_CONTACT);
+  //       } else {
+  //         finishWithResult(FORM_COULD_NOT_BE_OPEN);
+  //       }
+  //     } catch(Exception e) {
+  //       finishWithResult(FORM_COULD_NOT_BE_OPEN);
+  //     }
+  //   }
 
-    void openContactForm() {
-      try {
-        Intent intent = new Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI);
-        intent.putExtra("finishActivityOnSaveCompleted", true);
-        startIntent(intent, REQUEST_OPEN_CONTACT_FORM);
-      }catch(Exception e) {
-      }
-    }
+  //   void openContactForm() {
+  //     try {
+  //       Intent intent = new Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI);
+  //       intent.putExtra("finishActivityOnSaveCompleted", true);
+  //       startIntent(intent, REQUEST_OPEN_CONTACT_FORM);
+  //     }catch(Exception e) {
+  //     }
+  //   }
 
-    void openContactPicker() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
-        startIntent(intent, REQUEST_OPEN_CONTACT_PICKER);
-    }
+  //   void openContactPicker() {
+  //       Intent intent = new Intent(Intent.ACTION_PICK);
+  //       intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
+  //       startIntent(intent, REQUEST_OPEN_CONTACT_PICKER);
+  //   }
 
-    void startIntent(Intent intent, int request) {
-    }
+  //   void startIntent(Intent intent, int request) {
+  //   }
 
-    HashMap getContactByIdentifier(String identifier) {
-      ArrayList<Contact> matchingContacts;
-      {
-        Cursor cursor = contentResolver.query(
-                ContactsContract.Data.CONTENT_URI, PROJECTION,
-                ContactsContract.RawContacts.CONTACT_ID + " = ?",
-                new String[]{identifier},
-                null
-        );
-        try {
-          matchingContacts = getContactsFrom(cursor, localizedLabels);
-        } finally {
-          if(cursor != null) {
-            cursor.close();
-          }
-        }
-      }
-      if(matchingContacts.size() > 0) {
-        return matchingContacts.iterator().next().toMap();
-      }
-      return null;
-    }
-  }
+  //   HashMap getContactByIdentifier(String identifier) {
+  //     ArrayList<Contact> matchingContacts;
+  //     {
+  //       Cursor cursor = contentResolver.query(
+  //               ContactsContract.Data.CONTENT_URI, PROJECTION,
+  //               ContactsContract.RawContacts.CONTACT_ID + " = ?",
+  //               new String[]{identifier},
+  //               null
+  //       );
+  //       try {
+  //         matchingContacts = getContactsFrom(cursor, localizedLabels);
+  //       } finally {
+  //         if(cursor != null) {
+  //           cursor.close();
+  //         }
+  //       }
+  //     }
+  //     if(matchingContacts.size() > 0) {
+  //       return matchingContacts.iterator().next().toMap();
+  //     }
+  //     return null;
+  //   }
+  // }
   
     private void openDeviceContactPicker(Result result, boolean localizedLabels) {
       if (delegate != null) {
@@ -525,55 +550,55 @@ private class BaseContactsServiceDelegate {
       }
   }
   
-  private class ContactServiceDelegateOld extends BaseContactsServiceDelegate {
-    private final PluginRegistry.Registrar registrar;
+  // private class ContactServiceDelegateOld extends BaseContactsServiceDelegate {
+  //   private final PluginRegistry.Registrar registrar;
 
-    ContactServiceDelegateOld(PluginRegistry.Registrar registrar) {
-      this.registrar = registrar;
-      registrar.addActivityResultListener(this);
-    }
+  //   ContactServiceDelegateOld(PluginRegistry.Registrar registrar) {
+  //     this.registrar = registrar;
+  //     registrar.addActivityResultListener(this);
+  //   }
 
-    @Override
-    void startIntent(Intent intent, int request) {
-      if (registrar.activity() != null) {
-        registrar.activity().startActivityForResult(intent, request);
-      } else {
-        registrar.context().startActivity(intent);
-      }
-    }
-  }
+  //   @Override
+  //   void startIntent(Intent intent, int request) {
+  //     if (registrar.activity() != null) {
+  //       registrar.activity().startActivityForResult(intent, request);
+  //     } else {
+  //       registrar.context().startActivity(intent);
+  //     }
+  //   }
+  // }
 
-  private class ContactServiceDelegate extends BaseContactsServiceDelegate {
-    private final Context context;
-    private ActivityPluginBinding activityPluginBinding;
+  // private class ContactServiceDelegate extends BaseContactsServiceDelegate {
+  //   private final Context context;
+  //   private ActivityPluginBinding activityPluginBinding;
 
-    ContactServiceDelegate(Context context) {
-      this.context = context;
-    }
+  //   ContactServiceDelegate(Context context) {
+  //     this.context = context;
+  //   }
 
-    void bindToActivity(ActivityPluginBinding activityPluginBinding) {
-      this.activityPluginBinding = activityPluginBinding;
-      this.activityPluginBinding.addActivityResultListener(this);
-    }
+  //   void bindToActivity(ActivityPluginBinding activityPluginBinding) {
+  //     this.activityPluginBinding = activityPluginBinding;
+  //     this.activityPluginBinding.addActivityResultListener(this);
+  //   }
 
-    void unbindActivity() {
-      this.activityPluginBinding.removeActivityResultListener(this);
-      this.activityPluginBinding = null;
-    }
+  //   void unbindActivity() {
+  //     this.activityPluginBinding.removeActivityResultListener(this);
+  //     this.activityPluginBinding = null;
+  //   }
 
-    @Override
-    void startIntent(Intent intent, int request) {
-      if (this.activityPluginBinding != null) {
-        if (intent.resolveActivity(context.getPackageManager()) != null) {
-          activityPluginBinding.getActivity().startActivityForResult(intent, request);
-        } else {
-          finishWithResult(FORM_COULD_NOT_BE_OPEN);
-        }
-      } else {
-        context.startActivity(intent);
-      }
-    }
-  }
+  //   @Override
+  //   void startIntent(Intent intent, int request) {
+  //     if (this.activityPluginBinding != null) {
+  //       if (intent.resolveActivity(context.getPackageManager()) != null) {
+  //         activityPluginBinding.getActivity().startActivityForResult(intent, request);
+  //       } else {
+  //         finishWithResult(FORM_COULD_NOT_BE_OPEN);
+  //       }
+  //     } else {
+  //       context.startActivity(intent);
+  //     }
+  //   }
+  // }
 
   @TargetApi(Build.VERSION_CODES.CUPCAKE)
   private class GetContactsTask extends AsyncTask<Object, Void, ArrayList<HashMap>> {
