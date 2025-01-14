@@ -247,6 +247,156 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
     }
   }
 
+private class BaseContactsServiceDelegate {
+    private static final int REQUEST_OPEN_CONTACT_FORM = 52941;
+    private static final int REQUEST_OPEN_EXISTING_CONTACT = 52942;
+    private static final int REQUEST_OPEN_CONTACT_PICKER = 52943;
+    private Result result;
+    private boolean localizedLabels;
+
+    private ActivityResultLauncher<Intent> contactPickerLauncher;
+    private ActivityResultLauncher<Intent> contactFormLauncher;
+    private ActivityResultLauncher<Intent> existingContactLauncher;
+
+    BaseContactsServiceDelegate(Activity activity) {
+        // Initialize ActivityResultLaunchers
+        contactPickerLauncher = activity.registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> handleContactPickerResult(result)
+        );
+
+        contactFormLauncher = activity.registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> handleContactFormResult(result)
+        );
+
+        existingContactLauncher = activity.registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> handleExistingContactResult(result)
+        );
+    }
+
+    void setResult(Result result) {
+        this.result = result;
+    }
+
+    void setLocalizedLabels(boolean localizedLabels) {
+        this.localizedLabels = localizedLabels;
+    }
+
+    void finishWithResult(Object result) {
+        if (this.result != null) {
+            this.result.success(result);
+            this.result = null;
+        }
+    }
+
+    private void handleContactPickerResult(ActivityResult result) {
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            Intent intent = result.getData();
+            Uri contactUri = intent.getData();
+            if (contactUri != null) {
+                Cursor cursor = contentResolver.query(contactUri, null, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    String id = contactUri.getLastPathSegment();
+                    getContacts("openDeviceContactPicker", id, false, false, false, localizedLabels, this.result);
+                    cursor.close();
+                } else {
+                    finishWithResult(FORM_OPERATION_CANCELED);
+                }
+            } else {
+                finishWithResult(FORM_OPERATION_CANCELED);
+            }
+        } else {
+            finishWithResult(FORM_OPERATION_CANCELED);
+        }
+    }
+
+    private void handleContactFormResult(ActivityResult result) {
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            Intent intent = result.getData();
+            Uri uri = intent.getData();
+            if (uri != null) {
+                finishWithResult(getContactByIdentifier(uri.getLastPathSegment()));
+            } else {
+                finishWithResult(FORM_OPERATION_CANCELED);
+            }
+        } else {
+            finishWithResult(FORM_OPERATION_CANCELED);
+        }
+    }
+
+    private void handleExistingContactResult(ActivityResult result) {
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            Intent intent = result.getData();
+            Uri uri = intent.getData();
+            if (uri != null) {
+                finishWithResult(getContactByIdentifier(uri.getLastPathSegment()));
+            } else {
+                finishWithResult(FORM_OPERATION_CANCELED);
+            }
+        } else {
+            finishWithResult(FORM_OPERATION_CANCELED);
+        }
+    }
+
+    void openExistingContact(Contact contact) {
+        String identifier = contact.identifier;
+        try {
+            HashMap contactMapFromDevice = getContactByIdentifier(identifier);
+            // Contact existence check
+            if (contactMapFromDevice != null) {
+                Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, identifier);
+                Intent intent = new Intent(Intent.ACTION_EDIT);
+                intent.setDataAndType(uri, ContactsContract.Contacts.CONTENT_ITEM_TYPE);
+                intent.putExtra("finishActivityOnSaveCompleted", true);
+                existingContactLauncher.launch(intent);
+            } else {
+                finishWithResult(FORM_COULD_NOT_BE_OPEN);
+            }
+        } catch (Exception e) {
+            finishWithResult(FORM_COULD_NOT_BE_OPEN);
+        }
+    }
+ void openContactForm() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI);
+            intent.putExtra("finishActivityOnSaveCompleted", true);
+            contactFormLauncher.launch(intent);
+        } catch (Exception e) {
+            finishWithResult(FORM_COULD_NOT_BE_OPEN);
+        }
+    }
+
+    void openContactPicker() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
+        contactPickerLauncher.launch(intent);
+    }
+   HashMap getContactByIdentifier(String identifier) {
+      ArrayList<Contact> matchingContacts;
+      {
+        Cursor cursor = contentResolver.query(
+                ContactsContract.Data.CONTENT_URI, PROJECTION,
+                ContactsContract.RawContacts.CONTACT_ID + " = ?",
+                new String[]{identifier},
+                null
+        );
+        try {
+          matchingContacts = getContactsFrom(cursor, localizedLabels);
+        } finally {
+          if(cursor != null) {
+            cursor.close();
+          }
+        }
+      }
+      if(matchingContacts.size() > 0) {
+        return matchingContacts.iterator().next().toMap();
+      }
+      return null;
+    }
+}
+  
   private class BaseContactsServiceDelegate implements PluginRegistry.ActivityResultListener {
     private static final int REQUEST_OPEN_CONTACT_FORM = 52941;
     private static final int REQUEST_OPEN_EXISTING_CONTACT = 52942;
