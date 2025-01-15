@@ -297,7 +297,7 @@ private class BaseContactsServiceDelegate {
     private ActivityResultLauncher<Intent> contactFormLauncher;
     private ActivityResultLauncher<Intent> existingContactLauncher;
 
-    BaseContactsServiceDelegate(Activity activity) {
+    BaseContactsServiceDelegate(android.app.Activity activity) {
         // Initialize ActivityResultLaunchers
         contactPickerLauncher = activity.registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -331,7 +331,7 @@ private class BaseContactsServiceDelegate {
     }
 
     private void handleContactPickerResult(ActivityResult result) {
-        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+        if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
             Intent intent = result.getData();
             Uri contactUri = intent.getData();
             if (contactUri != null) {
