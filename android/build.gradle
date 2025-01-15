@@ -42,4 +42,5 @@ dependencies {
     testImplementation 'com.google.truth:truth:1.0'
     implementation 'androidx.activity:activity:1.9.3' // For ActivityResult APIs
     implementation 'androidx.fragment:fragment:1.6.1'  // Replace with the latest version
+    implementation 'androidx.appcompat:appcompat:1.6.1' 
 }
